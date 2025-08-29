@@ -3,14 +3,14 @@ requires = ["hatchling>=1.21"]
 build-backend = "hatchling.build"
 
 [project]
-name = "quicksand"
+name = "quixand"
 version = "0.1.0"
 description = "Local-first, adapter-pluggable sandboxes for AI code execution (E2B-like API)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
-  { name = "Quicksand Contributors" }
+  { name = "Quixand Contributors" }
 ]
 dependencies = [
   "pydantic>=2.6",
@@ -22,6 +22,8 @@ dependencies = [
   "ptyprocess>=0.7",
   "typer>=0.12",
   "rich>=13.7",
+  "build>=1.3.0",
+  "twine>=6.1.0",
 ]
 
 [project.optional-dependencies]
@@ -30,7 +32,7 @@ chutes = []
 remote = ["aiohttp>=3.9"]
 
 [project.scripts]
-qs = "quicksand.cli.main:app"
+qs = "quixand.cli.main:app"
 
 [tool.pytest.ini_options]
 addopts = "-q"

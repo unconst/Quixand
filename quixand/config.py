@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 DEFAULT_TIMEOUT_SECONDS = 300
 DEFAULT_IMAGE = "python:3.11-slim"
 DEFAULT_RUNTIME = "docker"  # or "podman"
-STATE_DIR = Path(os.getenv("HOME", "~")).expanduser() / ".quicksand"
+STATE_DIR = Path(os.getenv("HOME", "~")).expanduser() / ".quixand"
 STATE_DIR.mkdir(parents=True, exist_ok=True)
 STATE_FILE = STATE_DIR / "state.json"
 TEMPLATES_DIR = STATE_DIR / "templates"

@@ -11,7 +11,7 @@ from ..core.lifecycle import connect as connect_fn
 from ..core.templates import Templates
 
 
-app = typer.Typer(name="qs", help="Quicksand CLI")
+app = typer.Typer(name="qs", help="Quixand CLI")
 sandbox_app = typer.Typer(name="sandbox", help="Sandbox lifecycle and exec")
 files_app = typer.Typer(name="files", help="Filesystem operations")
 templates_app = typer.Typer(name="templates", help="Template management")

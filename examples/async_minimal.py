@@ -1,5 +1,5 @@
 import asyncio
-import quicksand as qs
+import quixand as qs
 
 
 async def main():

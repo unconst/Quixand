@@ -101,7 +101,7 @@ class LocalDockerAdapter:
 		# Spawn watchdog in background
 		try:
 			interpreter = sys.executable or "python"
-			subprocess.Popen([interpreter, "-m", "quicksand.core.watchdog", h.id], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+			subprocess.Popen([interpreter, "-m", "quixand.core.watchdog", h.id], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 		except Exception:
 			pass
 		return h

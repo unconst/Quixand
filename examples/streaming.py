@@ -1,4 +1,4 @@
-import quicksand as qs
+import quixand as qs
 
 
 def main():

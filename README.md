@@ -1,9 +1,9 @@
-quicksand — Local & Pluggable Sandboxes for AI Code Execution
+quixand — Local & Pluggable Sandboxes for AI Code Execution
 =============================================================
 
-Quicksand is a local-first sandbox and code interpreter library. It mirrors the developer-facing API of E2B’s `Sandbox` and `AsyncSandbox` while running locally by default via Docker/Podman, with a clean adapter interface to plug in other backends (your infra, remote HTTP, etc.).
+Quixand is a local-first sandbox and code interpreter library. It mirrors the developer-facing API of E2B’s `Sandbox` and `AsyncSandbox` while running locally by default via Docker/Podman, with a clean adapter interface to plug in other backends (your infra, remote HTTP, etc.).
 
-Why quicksand?
+Why quixand?
 --------------
 
 - Familiar: mirrors E2B’s concepts and method names where practical
@@ -33,7 +33,7 @@ pip install -e '.[docker]'
 Configuration
 -------------
 
-Quicksand works out of the box, but you can configure via environment variables or code.
+Quixand works out of the box, but you can configure via environment variables or code.
 
 Environment variables:
 
@@ -41,13 +41,13 @@ Environment variables:
 - `QS_TIMEOUT_DEFAULT`: default timeout seconds (default 300)
 - `QS_IMAGE`: default container image (default `python:3.11-slim`)
 - `QS_RUNTIME`: `docker` | `podman` (auto-detects if unset)
-- `QS_ROOT`: host directory for state/template cache (default `~/.quicksand`)
+- `QS_ROOT`: host directory for state/template cache (default `~/.quixand`)
 - `QS_METADATA`: JSON string to tag sandboxes
 
 Programmatic config:
 
 ```python
-import quicksand as qs
+import quixand as qs
 cfg = qs.Config(timeout=600, image="python:3.11-slim")
 ```
 
@@ -57,13 +57,13 @@ Python API
 Top-level imports:
 
 ```python
-from quicksand import Sandbox, AsyncSandbox, connect, Templates
+from quixand import Sandbox, AsyncSandbox, connect, Templates
 ```
 
 Sync Sandbox:
 
 ```python
-import quicksand as qs
+import quixand as qs
 
 sbx = qs.Sandbox(template="python:3.11-slim", timeout=600, metadata={"user":"alice"})
 sbx.files.write("hello.txt", "hi!")
@@ -78,7 +78,7 @@ sbx.shutdown()
 Async Sandbox:
 
 ```python
-import asyncio, quicksand as qs
+import asyncio, quixand as qs
 
 async def main():
     sbx = await qs.AsyncSandbox.create(template="python:3.11-slim")
@@ -177,7 +177,7 @@ qs templates rm py311-tools
 Templates
 ---------
 
-Quicksand supports building images from `e2b.Dockerfile` or `Dockerfile` and caching references locally under `~/.quicksand/templates`.
+Quixand supports building images from `e2b.Dockerfile` or `Dockerfile` and caching references locally under `~/.quixand/templates`.
 
 ```bash
 qs templates build ./examples --name py311-tools
@@ -187,7 +187,7 @@ qs templates ls
 In code:
 
 ```python
-from quicksand import Templates, Sandbox
+from quixand import Templates, Sandbox
 img = Templates.build("./examples", name="py311-tools")
 sbx = Sandbox(template=img)
 ```
@@ -195,7 +195,7 @@ sbx = Sandbox(template=img)
 Adapters
 --------
 
-Adapters implement a common protocol in `quicksand.adapters.base.Adapter`. Included:
+Adapters implement a common protocol in `quixand.adapters.base.Adapter`. Included:
 
 - `LocalDockerAdapter` (default) — local Docker/Podman containers
 - `ChutesAdapter` (skeleton) — wire to your infra
@@ -206,7 +206,7 @@ Select adapter via `QS_ADAPTER` or passing an instance to `Sandbox(adapter=...)`
 State and Timeout Enforcement
 -----------------------------
 
-Quicksand keeps a local registry at `~/.quicksand/state.json`. A lightweight watchdog process enforces idle timeouts and cleans up containers and state when deadlines are exceeded. Default timeout is 300s; refresh with `refresh_timeout()` or CLI.
+Quixand keeps a local registry at `~/.quixand/state.json`. A lightweight watchdog process enforces idle timeouts and cleans up containers and state when deadlines are exceeded. Default timeout is 300s; refresh with `refresh_timeout()` or CLI.
 
 Security Defaults
 -----------------

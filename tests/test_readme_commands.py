@@ -9,7 +9,7 @@ import pytest
 
 
 def test_top_level_imports_and_config():
-    import quicksand as qs
+    import quixand as qs
 
     # Top-level imports
     assert hasattr(qs, "Sandbox")
@@ -54,7 +54,7 @@ def _runtime_available() -> bool:
 def test_async_sandbox_run_and_shutdown():
     if not _runtime_available():
         pytest.skip("Container runtime (docker/podman) not available or not running")
-    import quicksand as qs
+    import quixand as qs
 
     async def _inner():
         sbx = await qs.AsyncSandbox.create(template="python:3.11-slim")
@@ -74,7 +74,7 @@ def test_async_sandbox_run_and_shutdown():
 
 
 def test_connect_to_running_sandbox(sbx):
-    import quicksand as qs
+    import quixand as qs
 
     sid = sbx.id
     sbx2 = qs.connect(sid)
@@ -119,7 +119,7 @@ def test_process_exec_and_env(sbx):
 
 def test_templates_ls_and_rm_smoke():
     # We don't build images in tests to keep CI light; just smoke test ls/rm paths
-    import quicksand as qs
+    import quixand as qs
 
     # ls returns a dict
     idx = qs.Templates.ls()

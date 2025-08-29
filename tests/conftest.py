@@ -32,7 +32,7 @@ def require_container_runtime() -> str:
 
 @pytest.fixture()
 def sbx():
-    import quicksand as qs
+    import quixand as qs
 
     require_container_runtime()
     sandbox = qs.Sandbox(template="python:3.11-slim", timeout=300, metadata={"test": "true"})
