@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "quicksand"
+version = "0.1.0"
+description = "Local-first, adapter-pluggable sandboxes for AI code execution (E2B-like API)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Quicksand Contributors" }
+]
+dependencies = [
+  "pydantic>=2.6",
+  "anyio>=4.0",
+  "aiofiles>=24.1",
+  "aiohttp>=3.9",
+  "orjson>=3.10",
+  "websockets>=12.0",
+  "ptyprocess>=0.7",
+  "typer>=0.12",
+  "rich>=13.7",
+]
+
+[project.optional-dependencies]
+docker = ["docker>=7.0"]
+chutes = []
+remote = ["aiohttp>=3.9"]
+
+[project.scripts]
+qs = "quicksand.cli.main:app"
+
+[tool.pytest.ini_options]
+addopts = "-q"
+
+
