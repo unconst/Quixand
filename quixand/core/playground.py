@@ -136,6 +136,11 @@ class Playground:
 	def close(self) -> None:
 		self._cleanup()
 
+	def __del__(self):
+		# Best-effort cleanup when GC runs
+		with contextlib.suppress(Exception):
+			self._cleanup()
+
 	def create(self) -> Sandbox:
 		"""Get a sandbox from the pool, creating one if pool is empty.
 

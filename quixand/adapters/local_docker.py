@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable, Optional
+import shutil
 
 from ..config import Config
 from ..errors import QSAdapterError, QSSandboxNotFound, QSTimeout
@@ -98,10 +99,16 @@ class LocalDockerAdapter:
 			metadata=cfg.metadata or {},
 		)
 		self._persist_handle(h)
-		# Spawn watchdog in background
+		# Spawn watchdog in background, fully detached from this process/TTY
 		try:
 			interpreter = sys.executable or "python"
-			subprocess.Popen([interpreter, "-m", "quixand.core.watchdog", h.id], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+			subprocess.Popen(
+				[interpreter, "-m", "quixand.core.watchdog", h.id],
+				stdin=subprocess.DEVNULL,
+				stdout=subprocess.DEVNULL,
+				stderr=subprocess.DEVNULL,
+				start_new_session=True,
+			)
 		except Exception:
 			pass
 		return h
@@ -126,6 +133,8 @@ class LocalDockerAdapter:
 		docker_stop(self.runtime, h.container_id)
 		docker_rm(self.runtime, h.container_id)
 		self._remove_state(h.id)
+		# Best-effort cleanup of host-mounted dirs for this sandbox
+		self._cleanup_host_dirs(h.id)
 
 	def status(self, h: LocalHandle) -> SandboxStatus:
 		deadline = h.created_at + timedelta(seconds=h.timeout_seconds)
@@ -271,6 +280,14 @@ class LocalDockerAdapter:
 		p = Config.state_file().parent / "volumes" / sbx_id
 		p.mkdir(parents=True, exist_ok=True)
 		return str(p)
+
+	def _cleanup_host_dirs(self, sbx_id: str) -> None:
+		base = Config.state_file().parent
+		for rel in ("scratch", "volumes"):
+			try:
+				shutil.rmtree(str(base / rel / sbx_id), ignore_errors=True)
+			except Exception:
+				pass
 
 	def _load_state(self) -> dict:
 		if not Config.state_file().exists():

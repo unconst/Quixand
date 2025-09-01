@@ -4,6 +4,8 @@ import json
 import sys
 import time
 from datetime import datetime, timedelta, timezone
+import shutil
+from pathlib import Path
 
 from ..config import Config
 from ..utils.docker_utils import docker_stop, docker_rm
@@ -47,6 +49,13 @@ def main() -> int:
 					docker_rm(runtime, container_id)
 				except Exception:
 					pass
+			# Best-effort cleanup of host-mounted dirs for this sandbox
+			try:
+				base = Config.state_file().parent
+				for rel in ("scratch", "volumes"):
+					shutil.rmtree(str(base / rel / sbx_id), ignore_errors=True)
+			except Exception:
+				pass
 			# Remove from state
 			try:
 				state.pop(sbx_id, None)
