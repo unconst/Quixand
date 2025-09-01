@@ -7,6 +7,7 @@ from ..adapters.local_docker import LocalDockerAdapter
 from ..config import Config
 from ..errors import QSSandboxNotFound
 from ..types import SandboxStatus
+from ..utils.docker_utils import docker_container_exists, docker_stop, docker_rm
 from .sandbox import Sandbox
 
 
@@ -30,4 +31,24 @@ def connect(sandbox_id: str, adapter: str | None = None) -> Sandbox:
 		return obj
 	raise QSSandboxNotFound(f"Adapter {name} connect not implemented")
 
+
+def gc_stale() -> int:
+	cfg = Config()
+	ad = LocalDockerAdapter(cfg)
+	state = ad._load_state()
+	removed = 0
+	for sbx_id, entry in list(state.items()):
+		container_id = entry.get("container_id")
+		runtime = entry.get("runtime", "docker")
+		if container_id and not docker_container_exists(runtime, container_id):
+			try:
+				ad._remove_state(sbx_id)
+			except Exception:
+				pass
+			try:
+				ad._cleanup_host_dirs(sbx_id)
+			except Exception:
+				pass
+			removed += 1
+	return removed
 

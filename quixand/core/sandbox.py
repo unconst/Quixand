@@ -73,6 +73,7 @@ class Sandbox:
 		self._handle = self._adapter.create(sbx_cfg)
 		self.files = FilesFacade(self)
 		self.id = self._handle.id
+		self._closed = False
 
 	def status(self) -> SandboxStatus:
 		return self._adapter.status(self._handle)
@@ -81,7 +82,13 @@ class Sandbox:
 		self._adapter.refresh_timeout(self._handle, seconds)
 
 	def shutdown(self) -> None:
-		self._adapter.shutdown(self._handle)
+		if self._closed:
+			return
+		try:
+			self._adapter.shutdown(self._handle)
+		except Exception:
+			pass
+		self._closed = True
 
 	def run(self, cmd: list[str] | str, timeout: Optional[int] = None, env: Optional[dict] = None) -> CommandResult:
 		return self._adapter.run(self._handle, cmd, env, timeout)
@@ -114,5 +121,19 @@ class Sandbox:
 
 	def expose(self, port: int, host_port: Optional[int] = None, protocol: str = "tcp"):
 		return self._adapter.expose(self._handle, port, host_port, protocol)
+
+	# Context manager support to ensure cleanup
+	def __enter__(self) -> "Sandbox":
+		return self
+
+	def __exit__(self, exc_type, exc, tb) -> None:
+		self.shutdown()
+
+	def __del__(self):
+		# Best-effort process exit cleanup if user forgets to call shutdown
+		try:
+			self.shutdown()
+		except Exception:
+			pass
 
 

@@ -27,6 +27,17 @@ def read_text(path: Path) -> str:
 	return path.read_text(encoding="utf-8")
 
 
+def atomic_write_text(path: Path, data: str) -> None:
+	"""Write text atomically by writing to a temp file and renaming.
+
+	Prevents partial/corrupted state files that could strand watchdogs/containers.
+	"""
+	ensure_parent(path)
+	tmp = path.with_suffix(path.suffix + ".tmp")
+	tmp.write_text(data, encoding="utf-8")
+	os.replace(tmp, path)
+
+
 def list_dir(path: Path) -> List[str]:
 	if not path.exists():
 		return []

@@ -45,15 +45,20 @@ def docker_run_detached(runtime: str, args: List[str]) -> str:
 
 
 def docker_stop(runtime: str, container: str) -> None:
-	run_cli([runtime, "stop", container], check=False)
+	# Bound the stop call so watchdogs can't hang forever if the runtime is stuck.
+	timeout_s = int(os.getenv("QS_DOCKER_STOP_TIMEOUT", "15"))
+	run_cli([runtime, "stop", container], check=False, timeout=timeout_s)
 
 
 def docker_rm(runtime: str, container: str) -> None:
-	run_cli([runtime, "rm", "-f", container], check=False)
+	# Bound the rm call to avoid stranded watchdogs.
+	timeout_s = int(os.getenv("QS_DOCKER_RM_TIMEOUT", "15"))
+	run_cli([runtime, "rm", "-f", container], check=False, timeout=timeout_s)
 
 
 def docker_container_exists(runtime: str, container: str) -> bool:
 	"""Return True if the container exists (running or stopped)."""
-	proc = run_cli([runtime, "inspect", container], check=False)
+	timeout_s = int(os.getenv("QS_DOCKER_INSPECT_TIMEOUT", "5"))
+	proc = run_cli([runtime, "inspect", container], check=False, timeout=timeout_s)
 	return proc.returncode == 0
 

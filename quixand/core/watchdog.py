@@ -35,12 +35,17 @@ def main() -> int:
 		try:
 			last_active_at = datetime.fromisoformat(entry["last_active_at"])  # naive -> treat as UTC
 		except Exception:
-			last_active_at = datetime.utcnow()
+			# If state is corrupted or missing last_active_at, fall back to created_at
+			# rather than "now" to avoid extending lifetime indefinitely.
+			last_active_at = created_at
 		timeout_seconds = int(entry.get("timeout_seconds", 300))
 		now = datetime.utcnow()
 		deadline = last_active_at + timedelta(seconds=timeout_seconds)
+		# Apply a hard lifetime cap to prevent a watchdog from running forever
+		# in case last_active_at parsing keeps failing or state drifts.
+		lifetime_deadline = created_at + timedelta(seconds=max(timeout_seconds * 2, timeout_seconds + 60))
 		# If idle or lifetime exceeded
-		if now >= deadline:
+		if now >= deadline or now >= lifetime_deadline:
 			runtime = entry.get("runtime", "docker")
 			container_id = entry.get("container_id")
 			if container_id:

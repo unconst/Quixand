@@ -24,6 +24,7 @@ from ..utils.docker_utils import (
 	detect_runtime,
 	run_cli,
 )
+from ..utils.fs import atomic_write_text
 from .base import SandboxConfig
 from ..core import watchdog as watchdog_module
 import subprocess, sys
@@ -340,11 +341,11 @@ class LocalDockerAdapter:
 			"metadata": h.metadata,
 			"adapter": self.name,
 		}
-		Config.state_file().write_text(json.dumps(state, indent=2))
+		atomic_write_text(Config.state_file(), json.dumps(state, indent=2))
 
 	def _remove_state(self, sandbox_id: str) -> None:
 		state = self._load_state()
 		state.pop(sandbox_id, None)
-		Config.state_file().write_text(json.dumps(state, indent=2))
+		atomic_write_text(Config.state_file(), json.dumps(state, indent=2))
 
 
