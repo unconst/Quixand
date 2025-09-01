@@ -22,6 +22,7 @@ from ..utils.docker_utils import (
 	docker_run_detached,
 	docker_stop,
 	detect_runtime,
+	run_cli,
 )
 from .base import SandboxConfig
 from ..core import watchdog as watchdog_module
@@ -85,7 +86,10 @@ class LocalDockerAdapter:
 			args += ["--cpus", str(cfg.resources.cpu_limit)]
 
 		image = cfg.image
-		args += [image, "sleep", "infinity"]
+		# Force a neutral entrypoint to ensure long-lived container even if image sets ENTRYPOINT
+		# Use /bin/sh -c "sleep infinity" to avoid images where bash is not present or ENTRYPOINT interferes
+		args += ["--entrypoint", "/bin/sh"]
+		args += [image, "-c", "sleep infinity"]
 
 		container_id = docker_run_detached(self.runtime, args)
 		h = LocalHandle(
@@ -138,14 +142,40 @@ class LocalDockerAdapter:
 		self._cleanup_host_dirs(h.id)
 
 	def status(self, h: LocalHandle) -> SandboxStatus:
-		deadline = h.created_at + timedelta(seconds=h.timeout_seconds)
-		state = "running"
+		# Inspect the container to determine actual state
+		container_state = "error"
+		try:
+			proc = run_cli([self.runtime, "inspect", h.container_id], check=False)
+			if proc.returncode == 0:
+				try:
+					info = json.loads(proc.stdout.decode("utf-8", "ignore"))
+					if isinstance(info, list) and info:
+						status_str = (
+							info[0].get("State", {}).get("Status") or ""
+						).lower()
+						# Map Docker status to SandboxState
+						if status_str in {"running", "paused"}:
+							container_state = "running"
+						elif status_str in {"created"}:
+							container_state = "creating"
+						elif status_str in {"restarting", "removing"}:
+							container_state = "stopping"
+						elif status_str in {"exited", "dead"}:
+							container_state = "stopped"
+						else:
+							container_state = "error"
+					else:
+						container_state = "error"
+				except Exception:
+					container_state = "error"
+			else:
+				container_state = "error"
+		except Exception:
+			container_state = "error"
+
+		deadline = h.last_active_at + timedelta(seconds=h.timeout_seconds)
 		return SandboxStatus(
-			state=state,
-			created_at=h.created_at,
-			last_active_at=h.last_active_at,
-			timeout_at=deadline,
-			metadata=h.metadata,
+			state=container_state, created_at=h.created_at, last_active_at=h.last_active_at, timeout_at=deadline, metadata=h.metadata
 		)
 
 	def refresh_timeout(self, h: LocalHandle, seconds: int) -> None:
