@@ -52,3 +52,8 @@ def docker_rm(runtime: str, container: str) -> None:
 	run_cli([runtime, "rm", "-f", container], check=False)
 
 
+def docker_container_exists(runtime: str, container: str) -> bool:
+	"""Return True if the container exists (running or stopped)."""
+	proc = run_cli([runtime, "inspect", container], check=False)
+	return proc.returncode == 0
+

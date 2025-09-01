@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 
 from ..config import Config
-from ..utils.docker_utils import docker_stop, docker_rm
+from ..utils.docker_utils import docker_stop, docker_rm, docker_container_exists
 
 
 def _load_state() -> dict:
@@ -60,6 +60,23 @@ def main() -> int:
 			try:
 				state.pop(sbx_id, None)
 				Config.state_file().write_text(json.dumps(state, indent=2))
+			except Exception:
+				pass
+			return 0
+		# If container does not exist anymore, exit and clean state quickly
+		runtime = entry.get("runtime", "docker")
+		container_id = entry.get("container_id")
+		if container_id and not docker_container_exists(runtime, container_id):
+			try:
+				state.pop(sbx_id, None)
+				Config.state_file().write_text(json.dumps(state, indent=2))
+			except Exception:
+				pass
+			# Also cleanup host-mounted dirs
+			try:
+				base = Config.state_file().parent
+				for rel in ("scratch", "volumes"):
+					shutil.rmtree(str(base / rel / sbx_id), ignore_errors=True)
 			except Exception:
 				pass
 			return 0

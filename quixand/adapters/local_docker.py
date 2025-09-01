@@ -100,17 +100,18 @@ class LocalDockerAdapter:
 		)
 		self._persist_handle(h)
 		# Spawn watchdog in background, fully detached from this process/TTY
-		try:
-			interpreter = sys.executable or "python"
-			subprocess.Popen(
-				[interpreter, "-m", "quixand.core.watchdog", h.id],
-				stdin=subprocess.DEVNULL,
-				stdout=subprocess.DEVNULL,
-				stderr=subprocess.DEVNULL,
-				start_new_session=True,
-			)
-		except Exception:
-			pass
+		if os.getenv("QS_DISABLE_WATCHDOG") not in {"1", "true", "TRUE", "True"}:
+			try:
+				interpreter = sys.executable or "python"
+				subprocess.Popen(
+					[interpreter, "-m", "quixand.core.watchdog", h.id],
+					stdin=subprocess.DEVNULL,
+					stdout=subprocess.DEVNULL,
+					stderr=subprocess.DEVNULL,
+					start_new_session=True,
+				)
+			except Exception:
+				pass
 		return h
 
 	def connect(self, sandbox_id: str) -> LocalHandle:
