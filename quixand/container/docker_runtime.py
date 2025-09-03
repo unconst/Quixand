@@ -48,8 +48,32 @@ class DockerRuntime(ContainerRuntime):
         except Exception as e:
             raise RuntimeError(f"Failed to connect to Docker daemon: {e}")
 
+    def _ensure_image_exists(self, image: str) -> None:
+        """Ensure image exists locally, pull if needed."""
+        try:
+            # Check if image exists
+            self.client.api.inspect_image(image)
+        except NotFound:
+            # Image doesn't exist, pull it
+            print(f"Image {image} not found locally, pulling...")
+            try:
+                for line in self.client.api.pull(image, stream=True, decode=True):
+                    if 'status' in line:
+                        status = line.get('status', '')
+                        progress = line.get('progress', '')
+                        if progress:
+                            print(f"  {status}: {progress}")
+                        elif status and status not in ['Pulling fs layer', 'Waiting', 'Download complete']:
+                            print(f"  {status}")
+                print(f"Image {image} pulled successfully")
+            except Exception as e:
+                raise RuntimeError(f"Failed to pull image {image}: {e}")
+    
     def create_container(self, config: ContainerConfig) -> str:
         """Create a new container and return its ID."""
+        # Ensure image exists
+        self._ensure_image_exists(config.image)
+        
         # Prepare volume mounts
         volumes = {}
         binds = {}

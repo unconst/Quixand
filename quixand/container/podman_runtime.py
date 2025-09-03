@@ -46,8 +46,30 @@ class PodmanRuntime(ContainerRuntime):
         except Exception as e:
             raise RuntimeError(f"Failed to connect to Podman service: {e}")
 
+    def _ensure_image_exists(self, image: str) -> None:
+        """Ensure image exists locally, pull if needed."""
+        try:
+            # Check if image exists
+            self.client.images.get(image)
+        except (NotFound, Exception) as e:
+            # Check if it's truly a "not found" error
+            if "ImageNotFound" in str(type(e).__name__) or "image not known" in str(e) or "404" in str(e):
+                # Image doesn't exist, pull it
+                print(f"Image {image} not found locally, pulling...")
+                try:
+                    pulled_image = self.client.images.pull(image)
+                    print(f"Image {image} pulled successfully (ID: {pulled_image.id[:12]})")
+                except Exception as pull_e:
+                    raise RuntimeError(f"Failed to pull image {image}: {pull_e}")
+            else:
+                # Some other error occurred
+                raise RuntimeError(f"Failed to check image {image}: {e}")
+    
     def create_container(self, config: ContainerConfig) -> str:
         """Create a new container and return its ID."""
+        # Ensure image exists
+        self._ensure_image_exists(config.image)
+        
         # Prepare mounts for Podman
         mounts = []
         for vol in config.volumes:
@@ -67,8 +89,11 @@ class PodmanRuntime(ContainerRuntime):
             'environment': config.env,
             'labels': config.labels,
             'detach': True,
-            'mounts': mounts if mounts else None,
         }
+        
+        # Only add mounts if they exist
+        if mounts:
+            container_kwargs['mounts'] = mounts
 
         # Add resource limits
         if config.resources:
@@ -76,7 +101,7 @@ class PodmanRuntime(ContainerRuntime):
                 # Podman uses CPU shares or period/quota
                 container_kwargs['cpu_shares'] = int(config.resources.cpu_limit * 1024)
             if config.resources.memory_limit:
-                container_kwargs['memory'] = config.resources.memory_limit
+                container_kwargs['mem_limit'] = config.resources.memory_limit
             if config.resources.pids_limit:
                 container_kwargs['pids_limit'] = config.resources.pids_limit
             if config.resources.network_mode:

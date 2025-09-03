@@ -48,11 +48,11 @@ def main():
         
         # 6. Verify with shell command
         print("\n6. Verifying with ls...")
-        result = sandbox.run("ls -la project/")
+        result = sandbox.run("ls -la")
         print(result.text)
         
         # 7. Copy between host and container
-        print("\n7. Host file transfer...")
+        print("\n7. Host file transfer(uploaded.txt)")
         
         # Create a local file
         with open("/tmp/host_file.txt", "w") as f:
@@ -60,6 +60,8 @@ def main():
         
         # Upload to sandbox
         sandbox.files.put("/tmp/host_file.txt", "uploaded.txt")
+        result = sandbox.run("ls -la")
+        print(result.text)
         print("[OK] Uploaded file from host")
         
         # Read uploaded file
@@ -74,6 +76,9 @@ def main():
         print("\n8. Cleanup...")
         sandbox.files.rm("uploaded.txt")
         sandbox.files.rm("project", recursive=True)
+        result = sandbox.run("ls -la")
+        print(result.text)
+
         print("[OK] Files deleted")
         
     print("\n=== Example completed successfully ===")

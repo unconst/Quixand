@@ -5,7 +5,7 @@ Demonstrates how to set and test resource limits for sandboxes
 """
 
 from quixand import Sandbox
-from quixand.container.base import ResourceLimits
+from quixand.config import Resources
 import time
 
 def main():
@@ -14,9 +14,9 @@ def main():
     
     # Example 1: Memory limit
     print("1. Testing memory limits...")
-    limits = ResourceLimits(memory="50m")  # 50MB limit
+    limits = Resources(mem_limit="50m")  # 50MB limit
     
-    with Sandbox(resource_limits=limits, timeout=30) as sandbox:
+    with Sandbox(resources=limits, timeout=30) as sandbox:
         print(f"Sandbox created with 50MB memory limit")
         
         # Try to allocate small amount (should succeed)
@@ -31,9 +31,9 @@ def main():
     
     # Example 2: CPU limits
     print("\n2. Testing CPU limits...")
-    limits = ResourceLimits(cpu_quota=50000, cpu_period=100000)  # 50% CPU
+    limits = Resources(cpu_quota=50000, cpu_period=100000)  # 50% CPU
     
-    with Sandbox(resource_limits=limits, timeout=30) as sandbox:
+    with Sandbox(resources=limits, timeout=30) as sandbox:
         print(f"Sandbox created with 50% CPU limit")
         
         # CPU intensive task
@@ -51,9 +51,9 @@ print(f"Task completed in {elapsed:.2f}s")
     
     # Example 3: PID limits
     print("\n3. Testing PID limits...")
-    limits = ResourceLimits(pids_limit=10)
+    limits = Resources(pids_limit=10)
     
-    with Sandbox(resource_limits=limits, timeout=30) as sandbox:
+    with Sandbox(resources=limits, timeout=30) as sandbox:
         print(f"Sandbox created with max 10 PIDs")
         
         # Try to create many processes
@@ -70,30 +70,7 @@ print("Created 5 child processes")
         result = sandbox.run(f"python3 -c '{code}'")
         if result.exit_code == 0:
             print(f"[OK] {result.text.strip()}")
-    
-    # Example 4: Combined limits
-    print("\n4. Testing combined limits...")
-    limits = ResourceLimits(
-        memory="100m",
-        cpu_quota=25000,
-        cpu_period=100000,  # 25% CPU
-        pids_limit=20
-    )
-    
-    with Sandbox(resource_limits=limits, timeout=30) as sandbox:
-        print("Sandbox created with multiple limits:")
-        print("  - Memory: 100MB")
-        print("  - CPU: 25%")
-        print("  - PIDs: 20")
-        
-        # Run a simple test
-        result = sandbox.run("echo 'Running with multiple limits'")
-        print(f"[OK] {result.text.strip()}")
-        
-        # Check resource usage
-        result = sandbox.run("ps aux | wc -l")
-        print(f"Process count: {result.text.strip()}")
-    
+
     print("\n=== Example completed successfully ===")
     return 0
 
