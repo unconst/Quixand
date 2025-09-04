@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import io
+import logging
 import os
 import tarfile
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
+
+# Suppress Docker SDK debug logs
+logging.getLogger('docker.utils.config').setLevel(logging.WARNING)
 
 try:
     import docker
