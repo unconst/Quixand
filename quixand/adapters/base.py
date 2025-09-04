@@ -41,13 +41,14 @@ class Adapter(Protocol):
 
 
 class SandboxConfig:
-	def __init__(self, *, image: str, timeout: int, env: dict | None, workdir: str | None, metadata: dict | None, resources: Optional["Resources"] = None):
+	def __init__(self, *, image: str, timeout: int, env: dict | None, workdir: str | None, metadata: dict | None, resources: Optional["Resources"] = None, volumes: Optional[list] = None):
 		self.image = image
 		self.timeout = timeout
 		self.env = env or {}
 		self.workdir = workdir or "/workspace"
 		self.metadata = metadata or {}
 		self.resources = resources
+		self.volumes = volumes or []
 
 
 class Resources:

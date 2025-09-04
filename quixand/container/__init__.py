@@ -7,11 +7,11 @@ from quixand.container.base import (
     ContainerState,
     ExecConfig,
     ExecResult,
-    ResourceLimits,
     VolumeMount
 )
 from quixand.container.docker_runtime import DockerRuntime
 from quixand.container.podman_runtime import PodmanRuntime
+from quixand.config import Resources
 
 __all__ = [
     "ContainerRuntime",
@@ -20,7 +20,7 @@ __all__ = [
     "ContainerState",
     "ExecConfig",
     "ExecResult",
-    "ResourceLimits",
+    "Resources",
     "VolumeMount",
     "DockerRuntime",
     "PodmanRuntime",

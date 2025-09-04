@@ -31,7 +31,7 @@ def main():
     
     # Example 2: CPU limits
     print("\n2. Testing CPU limits...")
-    limits = Resources(cpu_quota=50000, cpu_period=100000)  # 50% CPU
+    limits = Resources(cpu_limit=0.5)  # 50% CPU (0.5 cores)
     
     with Sandbox(resources=limits, timeout=30) as sandbox:
         print(f"Sandbox created with 50% CPU limit")

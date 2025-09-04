@@ -49,21 +49,22 @@ class PodmanRuntime(ContainerRuntime):
     def _ensure_image_exists(self, image: str) -> None:
         """Ensure image exists locally, pull if needed."""
         try:
-            # Check if image exists
             self.client.images.get(image)
+            return
         except (NotFound, Exception) as e:
-            # Check if it's truly a "not found" error
-            if "ImageNotFound" in str(type(e).__name__) or "image not known" in str(e) or "404" in str(e):
-                # Image doesn't exist, pull it
-                print(f"Image {image} not found locally, pulling...")
-                try:
-                    pulled_image = self.client.images.pull(image)
-                    print(f"Image {image} pulled successfully (ID: {pulled_image.id[:12]})")
-                except Exception as pull_e:
-                    raise RuntimeError(f"Failed to pull image {image}: {pull_e}")
-            else:
-                # Some other error occurred
+            if not ("ImageNotFound" in str(type(e).__name__) or "image not known" in str(e) or "404" in str(e)):
                 raise RuntimeError(f"Failed to check image {image}: {e}")
+
+        print(f"Pulling {image} from registry...")
+        try:
+            pulled_image = self.client.images.pull(image)
+            print(f"Image {image} pulled successfully (ID: {pulled_image.id[:12]})")
+        except Exception as pull_e:
+            raise RuntimeError(
+                f"Failed to acquire image {image}. "
+                f"The image could not be found locally, imported from Docker, or pulled from a registry. "
+                f"Error: {pull_e}"
+            )
     
     def create_container(self, config: ContainerConfig) -> str:
         """Create a new container and return its ID."""
@@ -100,12 +101,12 @@ class PodmanRuntime(ContainerRuntime):
             if config.resources.cpu_limit:
                 # Podman uses CPU shares or period/quota
                 container_kwargs['cpu_shares'] = int(config.resources.cpu_limit * 1024)
-            if config.resources.memory_limit:
-                container_kwargs['mem_limit'] = config.resources.memory_limit
+            if config.resources.mem_limit:
+                container_kwargs['mem_limit'] = config.resources.mem_limit
             if config.resources.pids_limit:
                 container_kwargs['pids_limit'] = config.resources.pids_limit
-            if config.resources.network_mode:
-                container_kwargs['network_mode'] = config.resources.network_mode
+            if config.resources.network:
+                container_kwargs['network_mode'] = config.resources.network
 
         # Add entrypoint and command
         if config.entrypoint:

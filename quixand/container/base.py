@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 from enum import Enum
 
+from quixand.config import Resources
+
 
 class ContainerState(Enum):
     """Container state enumeration."""
@@ -20,15 +22,6 @@ class ContainerState(Enum):
     DEAD = "dead"
     REMOVING = "removing"
     ERROR = "error"
-
-
-@dataclass
-class ResourceLimits:
-    """Resource limits for container."""
-    cpu_limit: Optional[float] = None  # CPU cores (e.g., 1.5)
-    memory_limit: Optional[str] = None  # Memory limit (e.g., "512m", "2g")
-    pids_limit: Optional[int] = None  # Maximum number of PIDs
-    network_mode: str = "bridge"  # Network mode: bridge, host, none
 
 
 @dataclass
@@ -48,7 +41,7 @@ class ContainerConfig:
     workdir: str = "/workspace"
     env: Dict[str, str] = field(default_factory=dict)
     volumes: List[VolumeMount] = field(default_factory=list)
-    resources: Optional[ResourceLimits] = None
+    resources: Optional[Resources] = None
     entrypoint: Optional[List[str]] = None
     command: Optional[List[str]] = None
     labels: Dict[str, str] = field(default_factory=dict)

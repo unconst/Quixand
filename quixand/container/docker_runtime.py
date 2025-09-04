@@ -88,15 +88,15 @@ class DockerRuntime(ContainerRuntime):
         # Prepare resource limits
         host_config_kwargs = {
             'binds': binds,
-            'network_mode': config.resources.network_mode if config.resources else 'bridge',
+            'network_mode': config.resources.network if config.resources else 'bridge',
         }
         
         if config.resources:
             if config.resources.cpu_limit:
                 # Convert CPU cores to nano CPUs (1 core = 1e9 nano CPUs)
                 host_config_kwargs['nano_cpus'] = int(config.resources.cpu_limit * 1e9)
-            if config.resources.memory_limit:
-                host_config_kwargs['mem_limit'] = config.resources.memory_limit
+            if config.resources.mem_limit:
+                host_config_kwargs['mem_limit'] = config.resources.mem_limit
             if config.resources.pids_limit:
                 host_config_kwargs['pids_limit'] = config.resources.pids_limit
 

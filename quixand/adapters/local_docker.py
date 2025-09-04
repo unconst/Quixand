@@ -7,13 +7,12 @@ import sys
 import time
 import uuid
 import subprocess
-import shutil
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable, Optional
 
-from quixand.config import Config
+from quixand.config import Config, Resources
 from quixand.errors import QSAdapterError, QSSandboxNotFound, QSTimeout
 from quixand.types import CommandResult, Execution, FileInfo, PTYHandle, SandboxHandle, SandboxStatus
 from quixand.utils.fs import atomic_write_text
@@ -25,7 +24,6 @@ from quixand.container import (
     ContainerConfig,
     ContainerState,
     ExecConfig,
-    ResourceLimits,
     VolumeMount
 )
 
@@ -69,26 +67,16 @@ class LocalDockerAdapter:
 
     def __init__(self, cfg: Optional[Config] = None):
         self.cfg = cfg or Config()
-        self.runtime_name = self._detect_runtime()
+        # Use runtime from config directly
+        self.runtime_name = self.cfg.runtime or "docker"
         self.runtime = get_runtime(self.runtime_name)
-
-    def _detect_runtime(self) -> str:
-        """Detect which container runtime to use."""
-        preferred = self.cfg.runtime
-        if preferred in {"docker", "podman"}:
-            return preferred
-        # Try Docker first, then Podman
-        for candidate in ("docker", "podman"):
-            if shutil.which(candidate):
-                return candidate
-        return "docker"  # Default
 
     # lifecycle
     def create(self, cfg: "SandboxConfig") -> LocalHandle:
         sbx_id = str(uuid.uuid4())
         container_name = f"qs_{sbx_id[:8]}"
 
-        # Prepare volume mount
+        # Prepare volume mounts
         volumes = [
             VolumeMount(
                 source=self._ensure_volume_dir(sbx_id),
@@ -97,16 +85,37 @@ class LocalDockerAdapter:
                 type="bind"
             )
         ]
+        
+        # Add user-specified volumes
+        if cfg.volumes:
+            for vol in cfg.volumes:
+                # vol can be either a string "src:dest" or a dict with volume configuration
+                if isinstance(vol, str):
+                    parts = vol.split(":")
+                    if len(parts) >= 2:
+                        volumes.append(
+                            VolumeMount(
+                                source=parts[0],
+                                target=parts[1],
+                                read_only=len(parts) > 2 and parts[2] == "ro",
+                                type="bind"
+                            )
+                        )
+                elif isinstance(vol, dict):
+                    volumes.append(
+                        VolumeMount(
+                            source=vol.get("source"),
+                            target=vol.get("target"),
+                            read_only=vol.get("read_only", False),
+                            type=vol.get("type", "bind")
+                        )
+                    )
 
         # Prepare resource limits
         resources = None
         if cfg.resources:
-            resources = ResourceLimits(
-                cpu_limit=cfg.resources.cpu_limit,
-                memory_limit=cfg.resources.mem_limit,
-                pids_limit=cfg.resources.pids_limit,
-                network_mode=cfg.resources.network or "bridge"
-            )
+            # Use Resources directly from config
+            resources = cfg.resources
 
         # Create container configuration
         container_config = ContainerConfig(

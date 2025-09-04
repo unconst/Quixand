@@ -38,21 +38,20 @@ def main():
         print("\n4. Creating directories...")
         sandbox.files.mkdir("project/src", parents=True)
         sandbox.files.mkdir("project/tests", parents=True)
+        result = sandbox.run("ls -la project")
+        print(result.text)
         print("[OK] Created project structure")
         
         # 5. Move files
         print("\n5. Moving files...")
         sandbox.files.mv("hello.txt", "project/hello.txt")
         sandbox.files.mv("data.json", "project/data.json")
-        print("[OK] Moved files to project/")
-        
-        # 6. Verify with shell command
-        print("\n6. Verifying with ls...")
         result = sandbox.run("ls -la")
         print(result.text)
+        print("[OK] Moved files to project/")
         
-        # 7. Copy between host and container
-        print("\n7. Host file transfer(uploaded.txt)")
+        # 6. Copy between host and container
+        print("\n6. Host file transfer(uploaded.txt)")
         
         # Create a local file
         with open("/tmp/host_file.txt", "w") as f:
@@ -72,8 +71,8 @@ def main():
         sandbox.files.get("project/data.json", "/tmp/downloaded.json")
         print("[OK] Downloaded file to host")
         
-        # 8. Delete files
-        print("\n8. Cleanup...")
+        # 7. Delete files
+        print("\n7. Cleanup...")
         sandbox.files.rm("uploaded.txt")
         sandbox.files.rm("project", recursive=True)
         result = sandbox.run("ls -la")
