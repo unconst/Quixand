@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Optional
 
 from ..config import Config
-from ..utils.docker_utils import detect_runtime
 
 
 INDEX = Config.templates_dir() / "index.json"
@@ -27,7 +26,9 @@ class Templates:
 			raise FileNotFoundError("No e2b.Dockerfile or Dockerfile found")
 		digest = _hash_dir(p)
 		img_name = f"qs/{name or p.name}:{digest[:12]}"
-		runtime = detect_runtime(None)
+		# Use runtime from Config
+		cfg = Config()
+		runtime = cfg.runtime or "docker"
 		cmd = [runtime, "build", "-f", str(dockerfile), "-t", img_name, str(p)]
 		subprocess.check_call(cmd)
 		idx = _load_index()

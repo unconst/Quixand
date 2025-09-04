@@ -3,12 +3,11 @@ from __future__ import annotations
 import json
 from typing import Optional
 
-from ..adapters.local_docker import LocalDockerAdapter
-from ..config import Config
-from ..errors import QSSandboxNotFound
-from ..types import SandboxStatus
-from ..utils.docker_utils import docker_container_exists, docker_stop, docker_rm
-from .sandbox import Sandbox
+from quixand.adapters.local_docker import LocalDockerAdapter, get_runtime
+from quixand.config import Config
+from quixand.errors import QSSandboxNotFound
+from quixand.types import SandboxStatus
+from quixand.core.sandbox import Sandbox
 
 
 def connect(sandbox_id: str, adapter: str | None = None) -> Sandbox:
@@ -39,16 +38,19 @@ def gc_stale() -> int:
 	removed = 0
 	for sbx_id, entry in list(state.items()):
 		container_id = entry.get("container_id")
-		runtime = entry.get("runtime", "docker")
-		if container_id and not docker_container_exists(runtime, container_id):
-			try:
-				ad._remove_state(sbx_id)
-			except Exception:
-				pass
-			try:
-				ad._cleanup_host_dirs(sbx_id)
-			except Exception:
-				pass
-			removed += 1
+		runtime_name = entry.get("runtime", "docker")
+		if container_id:
+			# Check if container exists using runtime API
+			runtime = get_runtime(runtime_name)
+			if not runtime.container_exists(container_id):
+				try:
+					ad._remove_state(sbx_id)
+				except Exception:
+					pass
+				try:
+					ad._cleanup_host_dirs(sbx_id)
+				except Exception:
+					pass
+				removed += 1
 	return removed
 
