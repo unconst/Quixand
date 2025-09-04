@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/.." || exit 1
@@ -16,6 +17,7 @@ TEST_SCRIPTS=(
     "async_minimal.py"
     "file_operations.py"
     "minimal.py"
+    "streaming.py"
     "resource_limits.py"
     "template_build.py"
 )
