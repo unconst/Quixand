@@ -6,10 +6,15 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, TYPE_CHECKING
 from enum import Enum
+import queue
+import threading
 
 from quixand.config import Resources
+
+if TYPE_CHECKING:
+    from typing import Iterable
 
 
 class ContainerState(Enum):
@@ -89,6 +94,20 @@ class CopyConfig:
     container_path: str
     host_path: str
     to_container: bool = True  # True: host->container, False: container->host
+
+
+class PTYSession:
+    """Represents an interactive PTY session with a container."""
+    
+    def __init__(self, container_id: str, exec_id: Optional[str] = None):
+        self.container_id = container_id
+        self.exec_id = exec_id
+        self._closed = False
+        self.output_queue: queue.Queue = queue.Queue()
+        self.input_queue: queue.Queue = queue.Queue()
+        self._stream_thread: Optional[threading.Thread] = None
+        self._socket: Optional[Any] = None  # For Docker socket streaming
+        self._process: Optional[Any] = None  # For Podman process streaming
 
 
 class ContainerRuntime(ABC):
@@ -175,4 +194,29 @@ class ContainerRuntime(ABC):
     @abstractmethod
     def wait_container(self, container_id: str, timeout: Optional[int] = None) -> int:
         """Wait for container to stop and return exit code."""
+        pass
+    
+    @abstractmethod
+    def create_pty_session(
+        self,
+        container_id: str,
+        command: str,
+        env: Optional[Dict[str, str]] = None
+    ) -> PTYSession:
+        """Create an interactive PTY session with the container."""
+        pass
+    
+    @abstractmethod
+    def send_pty_input(self, session: PTYSession, data: bytes) -> None:
+        """Send input data to the PTY session."""
+        pass
+    
+    @abstractmethod
+    def stream_pty_output(self, session: PTYSession) -> "Iterable[bytes]":
+        """Stream output from the PTY session."""
+        pass
+    
+    @abstractmethod
+    def close_pty_session(self, session: PTYSession) -> None:
+        """Close the PTY session."""
         pass

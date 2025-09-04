@@ -7,6 +7,7 @@ import sys
 import time
 import uuid
 import subprocess
+import shutil
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -24,7 +25,8 @@ from quixand.container import (
     ContainerConfig,
     ContainerState,
     ExecConfig,
-    VolumeMount
+    VolumeMount,
+    PTYSession
 )
 
 
@@ -38,11 +40,6 @@ class LocalHandle(SandboxHandle):
     last_active_at: datetime
     timeout_seconds: int
     metadata: dict
-
-
-class LocalPTY(PTYHandle):
-    def __init__(self):
-        self._closed = True
 
 
 def get_runtime(runtime_name: str) -> ContainerRuntime:
@@ -352,19 +349,44 @@ class LocalDockerAdapter:
             duration_s=duration
         )
 
-    def pty_start(self, h: LocalHandle, cmd: str, env: Optional[dict]) -> PTYHandle:  # TODO: implement true PTY
-        return LocalPTY()
+    def pty_start(self, h: LocalHandle, cmd: str, env: Optional[dict]) -> PTYHandle:
+        """Start a PTY session with interactive streaming support."""
+        runtime = get_runtime(h.runtime_name)
+        
+        # Create PTY session using the container runtime
+        session = runtime.create_pty_session(h.container_id, cmd, env)
+        
+        # Store runtime name in session for later use
+        session._runtime_name = h.runtime_name
+        
+        # Update last active time
+        h.last_active_at = datetime.utcnow()
+        self._persist_handle(h)
+        
+        return session
 
-    def pty_send(self, pty: PTYHandle, data: bytes) -> None:  # TODO
-        pass
+    def pty_send(self, pty: PTYHandle, data: bytes) -> None:
+        """Send data to the PTY session."""
+        if isinstance(pty, PTYSession):
+            runtime = get_runtime(pty._runtime_name)
+            # Auto-append newline if not present
+            if isinstance(data, str):
+                data = data.encode('utf-8')
+            if not data.endswith(b'\n'):
+                data = data + b'\n'
+            runtime.send_pty_input(pty, data)
 
-    def pty_stream(self, pty: PTYHandle) -> Iterable[bytes]:  # TODO
-        if False:
-            yield b""
-        return
+    def pty_stream(self, pty: PTYHandle) -> Iterable[bytes]:
+        """Stream output from the PTY session."""
+        if isinstance(pty, PTYSession):
+            runtime = get_runtime(pty._runtime_name)
+            yield from runtime.stream_pty_output(pty)
 
-    def pty_close(self, pty: PTYHandle) -> None:  # TODO
-        pass
+    def pty_close(self, pty: PTYHandle) -> None:
+        """Close the PTY session."""
+        if isinstance(pty, PTYSession):
+            runtime = get_runtime(pty._runtime_name)
+            runtime.close_pty_session(pty)
 
     # code conveniences
     def run_code(self, h: LocalHandle, code: str) -> Execution:

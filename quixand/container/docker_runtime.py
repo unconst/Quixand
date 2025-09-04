@@ -28,7 +28,10 @@ from .base import (
     ContainerState,
     ExecConfig,
     ExecResult,
+    PTYSession,
 )
+import threading
+import queue
 
 
 class DockerRuntime(ContainerRuntime):
@@ -510,3 +513,132 @@ class DockerRuntime(ContainerRuntime):
             raise ValueError(f"Container {container_id} not found")
         except Exception as e:
             raise RuntimeError(f"Failed to wait for container: {e}")
+    
+    def create_pty_session(
+        self,
+        container_id: str,
+        command: str,
+        env: Optional[Dict[str, str]] = None
+    ) -> PTYSession:
+        """Create an interactive PTY session with the container."""
+        try:
+            # Create exec instance for PTY
+            exec_kwargs = {
+                'container': container_id,
+                'cmd': ['/bin/sh', '-c', command],
+                'stdout': True,
+                'stderr': True,
+                'stdin': True,
+                'tty': True,
+            }
+            if env:
+                exec_kwargs['environment'] = env
+            
+            exec_response = self.client.api.exec_create(**exec_kwargs)
+            exec_id = exec_response['Id']
+            
+            # Create PTY session
+            session = PTYSession(container_id, exec_id)
+            
+            # Start streaming thread
+            self._start_pty_stream(session)
+            
+            return session
+        except NotFound:
+            raise ValueError(f"Container {container_id} not found")
+        except Exception as e:
+            raise RuntimeError(f"Failed to create PTY session: {e}")
+    
+    def _start_pty_stream(self, session: PTYSession) -> None:
+        """Start the streaming thread for Docker PTY session."""
+        def stream_handler():
+            try:
+                # Start exec with socket for bidirectional communication
+                socket = self.client.api.exec_start(
+                    session.exec_id,
+                    detach=False,
+                    tty=True,
+                    stream=True,
+                    socket=True
+                )
+                session._socket = socket
+                
+                # Start reader thread for output
+                def read_output():
+                    while not session._closed:
+                        try:
+                            socket._sock.settimeout(0.1)
+                            chunk = socket._sock.recv(4096)
+                            if chunk:
+                                session.output_queue.put(chunk)
+                            else:
+                                # Socket closed - EOF received
+                                session._closed = True
+                                break
+                        except Exception:
+                            if not session._closed:
+                                continue
+                            break
+                
+                reader_thread = threading.Thread(target=read_output, daemon=True)
+                reader_thread.start()
+                
+                # Handle input in main streaming thread
+                while not session._closed:
+                    try:
+                        data = session.input_queue.get(timeout=0.1)
+                        if data:
+                            socket._sock.send(data)
+                    except queue.Empty:
+                        continue
+                    except Exception:
+                        break
+                
+            except Exception as e:
+                if not session._closed:
+                    print(f"PTY stream error: {e}")
+            finally:
+                session._closed = True
+        
+        session._stream_thread = threading.Thread(target=stream_handler, daemon=True)
+        session._stream_thread.start()
+    
+    def send_pty_input(self, session: PTYSession, data: bytes) -> None:
+        """Send input data to the PTY session."""
+        if not session._closed:
+            session.input_queue.put(data)
+    
+    def stream_pty_output(self, session: PTYSession):
+        """Stream output from the PTY session."""
+        while not session._closed:
+            try:
+                chunk = session.output_queue.get(timeout=0.1)
+                yield chunk
+            except queue.Empty:
+                # Check if stream thread is still alive
+                if session._stream_thread and not session._stream_thread.is_alive():
+                    # Drain any remaining output
+                    while not session.output_queue.empty():
+                        try:
+                            yield session.output_queue.get_nowait()
+                        except queue.Empty:
+                            break
+                    break
+                continue
+            except Exception:
+                break
+    
+    def close_pty_session(self, session: PTYSession) -> None:
+        """Close the PTY session."""
+        session._closed = True
+        
+        # Close socket if exists
+        if session._socket:
+            try:
+                session._socket.close()
+            except:
+                pass
+        
+        # Wait for thread to finish
+        if session._stream_thread:
+            session._stream_thread.join(timeout=1)

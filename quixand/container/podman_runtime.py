@@ -26,7 +26,12 @@ from .base import (
     ContainerState,
     ExecConfig,
     ExecResult,
+    PTYSession,
 )
+import threading
+import queue
+import json
+import requests
 
 
 class PodmanRuntime(ContainerRuntime):
@@ -533,3 +538,136 @@ class PodmanRuntime(ContainerRuntime):
             raise
         except Exception as e:
             raise RuntimeError(f"Failed to wait for container: {e}")
+    
+    def create_pty_session(
+        self,
+        container_id: str,
+        command: str,
+        env: Optional[Dict[str, str]] = None
+    ) -> PTYSession:
+        """Create an interactive PTY session with the container."""
+        try:
+            # Create PTY session (Podman uses exec but through HTTP API for streaming)
+            session = PTYSession(container_id)
+            
+            # Start streaming thread for Podman
+            self._start_pty_stream_podman(session, container_id, command, env)
+            
+            return session
+        except NotFound:
+            raise ValueError(f"Container {container_id} not found")
+        except Exception as e:
+            raise RuntimeError(f"Failed to create PTY session: {e}")
+    
+    def _start_pty_stream_podman(self, session: PTYSession, container_id: str, command: str, env: Optional[Dict[str, str]]) -> None:
+        """Start the streaming thread for Podman PTY session using subprocess for reliability."""
+        def stream_handler():
+            import subprocess
+            import select
+            import fcntl
+            import os
+            
+            try:
+                # Build podman exec command
+                podman_cmd = ["podman", "exec", "-it"]
+                if env:
+                    for key, val in env.items():
+                        podman_cmd.extend(["-e", f"{key}={val}"])
+                podman_cmd.extend([container_id, "/bin/sh", "-c", command])
+                
+                # Start podman process with PTY
+                proc = subprocess.Popen(
+                    podman_cmd,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    bufsize=0
+                )
+                session._process = proc
+                
+                # Make stdout non-blocking
+                if proc.stdout:
+                    flags = fcntl.fcntl(proc.stdout.fileno(), fcntl.F_GETFL)
+                    fcntl.fcntl(proc.stdout.fileno(), fcntl.F_SETFL, flags | os.O_NONBLOCK)
+                
+                # Stream output and handle input
+                while not session._closed and proc.poll() is None:
+                    # Check for output
+                    if proc.stdout:
+                        ready, _, _ = select.select([proc.stdout], [], [], 0.1)
+                        if ready:
+                            try:
+                                chunk = proc.stdout.read(4096)
+                                if chunk:
+                                    session.output_queue.put(chunk)
+                                else:
+                                    # EOF received
+                                    break
+                            except Exception:
+                                pass
+                    
+                    # Check for input
+                    try:
+                        data = session.input_queue.get_nowait()
+                        if data and proc.stdin:
+                            proc.stdin.write(data)
+                            proc.stdin.flush()
+                    except queue.Empty:
+                        pass
+                    except Exception:
+                        break
+                
+                # Process ended
+                session._closed = True
+                if proc.poll() is None:
+                    proc.terminate()
+                    
+            except Exception as e:
+                if not session._closed:
+                    print(f"PTY stream error: {e}")
+            finally:
+                session._closed = True
+        
+        session._stream_thread = threading.Thread(target=stream_handler, daemon=True)
+        session._stream_thread.start()
+    
+    def send_pty_input(self, session: PTYSession, data: bytes) -> None:
+        """Send input data to the PTY session."""
+        if not session._closed:
+            session.input_queue.put(data)
+    
+    def stream_pty_output(self, session: PTYSession):
+        """Stream output from the PTY session."""
+        while not session._closed:
+            try:
+                chunk = session.output_queue.get(timeout=0.1)
+                yield chunk
+            except queue.Empty:
+                # Check if stream thread is still alive
+                if session._stream_thread and not session._stream_thread.is_alive():
+                    # Drain any remaining output
+                    while not session.output_queue.empty():
+                        try:
+                            yield session.output_queue.get_nowait()
+                        except queue.Empty:
+                            break
+                    break
+                continue
+            except Exception:
+                break
+    
+    def close_pty_session(self, session: PTYSession) -> None:
+        """Close the PTY session."""
+        session._closed = True
+        
+        # Terminate subprocess if exists
+        if hasattr(session, '_process') and session._process:
+            try:
+                session._process.terminate()
+                session._process.wait(timeout=1)
+            except:
+                pass
+        
+        # Wait for thread to finish
+        if session._stream_thread:
+            session._stream_thread.join(timeout=1)

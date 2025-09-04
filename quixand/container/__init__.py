@@ -7,7 +7,8 @@ from quixand.container.base import (
     ContainerState,
     ExecConfig,
     ExecResult,
-    VolumeMount
+    VolumeMount,
+    PTYSession
 )
 from quixand.container.docker_runtime import DockerRuntime
 from quixand.container.podman_runtime import PodmanRuntime
@@ -22,6 +23,7 @@ __all__ = [
     "ExecResult",
     "Resources",
     "VolumeMount",
+    "PTYSession",
     "DockerRuntime",
     "PodmanRuntime",
 ]
