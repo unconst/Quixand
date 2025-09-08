@@ -8,6 +8,7 @@ import aiohttp
 import asyncio
 from typing import Any, Dict, List, Optional, Union, Tuple, Sequence, Literal, TypeVar, Awaitable
 from fastapi import FastAPI
+from pydantic import BaseModel
 
 __version__: str = "0.0.0"
 
@@ -26,8 +27,8 @@ if not CHUTES_API_KEY:
 MODEL = 'GANGodfather/Affine-5ER7L69dC9dmuyJ5AT7HxeSYgKjAH5Y7FPy3BLJQmSBH7Zh3'
 SLUG = 'gangodfather-gangodfather-affine-5er7l69dc9dmuyj5at7hxesyg'
 
-@app.post("/env/chutes")
-async def chutes(model: str, slug: str, prompt: str, timeout: float = 60) -> str:
+@app.post("/chutes")
+async def chutes(model: str, slug: str, prompt: str, timeout: float = 60) -> dict:
     url = f"https://{slug}.chutes.ai/v1/chat/completions"
     hdr = {"Authorization": f"Bearer {os.environ.get('CHUTES_API_KEY', '')}", "Content-Type": "application/json"}
     payload = {"model": model, "messages": [{"role": "user", "content": prompt}]}
@@ -44,14 +45,28 @@ async def chutes(model: str, slug: str, prompt: str, timeout: float = 60) -> str
     ) as client:
         async with client.post(url, json=payload, headers=hdr) as r:
             return await r.json()
-    
-@app.post("/env/run")
-async def run() -> dict:
-    prompt = "1 + 1 = ?"          
-    result = await chutes(model=MODEL, slug = SLUG, prompt=prompt)   
-    response = result["choices"][0]["message"]["content"]
-    score = 1.0 if response == "2" else 0.0 
-    return {'prompt': prompt, 'response': response, 'score': score }
+
+class AddRequest(BaseModel):
+    x: float
+    y: float
+
+
+@app.post("/run")
+async def run(req: AddRequest) -> dict:
+    x = req.x
+    y = req.y
+    prompt = f"{x} + {y} = ?"
+    result = await chutes(model=MODEL, slug=SLUG, prompt=prompt)
+    response = (result.get("choices", [{}])[0].get("message", {}).get("content") or "").strip()
+    expected = x + y
+    z = None
+    try:
+        m = re.search(r"-?\d+(?:\.\d+)?", response)
+        z = float(m.group(0)) if m else None
+    except Exception:
+        z = None
+    score = 1.0 if (z is not None and abs(z - expected) < 1e-9) else 0.0
+    return {"x": x, "y": y, "prompt": prompt, "response": response, "z": z, "expected": expected, "score": score}
 
     
 async def main():
@@ -68,20 +83,12 @@ async def main():
         },
     )
     print('build docker')
-    # Wait for server readiness
-    max_retries = 30
-    for i in range(max_retries):
-        try:
-            hc = sandbox.run(["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "http://localhost:8000/health"], timeout=5)
-            if hc.text.strip() == "200":
-                break
-        except Exception:
-            pass
-        await asyncio.sleep(1)
-            
-    run_cmd = ( "curl -sS -X POST http://localhost:8000/env/run") 
-    result = sandbox.run(run_cmd, timeout=60)
-    print (result)
+    # Use elegant proxy interface (waits for /health and calls /run)
+    try:
+        result = sandbox.proxy.run(x=1, y=2, timeout=60)
+        print(result)
+    finally:
+        sandbox.shutdown()
 
 if __name__ == "__main__":
     asyncio.run(main())

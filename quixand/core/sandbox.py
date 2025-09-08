@@ -7,6 +7,7 @@ from ..adapters.base import Adapter, Resources as AdapterResources, SandboxConfi
 from ..adapters.local_docker import LocalDockerAdapter
 from ..config import Config, Resources
 from ..types import CommandResult, Execution, FileInfo, SandboxStatus
+from .proxy import ProxyFacade
 
 
 def _resolve_adapter(adapter: str | Adapter | None, cfg: Config) -> Adapter:
@@ -72,6 +73,7 @@ class Sandbox:
 		sbx_cfg = SandboxConfig(image=image, timeout=timeout, env=env, workdir=workdir or self._cfg.workdir, metadata=metadata, resources=adapt_res, volumes=volumes, command=command, entrypoint=entrypoint)
 		self._handle = self._adapter.create(sbx_cfg)
 		self.files = FilesFacade(self)
+		self.proxy = ProxyFacade(self)
 		self.id = self._handle.id
 		self._closed = False
 
