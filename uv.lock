@@ -484,6 +484,20 @@ wheels = [
 ]
 
 [[package]]
+name = "fastapi"
+version = "0.116.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "starlette" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/78/d7/6c8b3bfe33eeffa208183ec037fee0cce9f7f024089ab1c5d12ef04bd27c/fastapi-0.116.1.tar.gz", hash = "sha256:ed52cbf946abfd70c5a0dccb24673f0670deeb517a88b3544d03c2a6bf283143", size = 296485, upload-time = "2025-07-11T16:22:32.057Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e5/47/d63c60f59a59467fda0f93f46335c9d18526d7071f025cb5b89d5353ea42/fastapi-0.116.1-py3-none-any.whl", hash = "sha256:c46ac7c312df840f0c9e220f7964bada936781bc4e2e6eb71f1c4d7553786565", size = 95631, upload-time = "2025-07-11T16:22:30.485Z" },
+]
+
+[[package]]
 name = "frozenlist"
 version = "1.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1105,6 +1119,20 @@ wheels = [
 ]
 
 [[package]]
+name = "podman"
+version = "5.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3b/36/070e7bf682ac0868450584df79198c178323e80f73b8fb9b6fec8bde0a65/podman-5.6.0.tar.gz", hash = "sha256:cc5f7aa9562e30f992fc170a48da970a7132be60d8a2e2941e6c17bd0a0b35c9", size = 72832, upload-time = "2025-09-05T09:42:40.071Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0a/9e/8c62f05b104d9f00edbb4c298b152deceb393ea67f0288d89d1139d7a859/podman-5.6.0-py3-none-any.whl", hash = "sha256:967ff8ad8c6b851bc5da1a9410973882d80e235a9410b7d1e931ce0c3324fbe3", size = 88713, upload-time = "2025-09-05T09:42:38.405Z" },
+]
+
+[[package]]
 name = "prompt-toolkit"
 version = "3.0.52"
 source = { registry = "https://pypi.org/simple" }
@@ -1485,15 +1513,18 @@ wheels = [
 
 [[package]]
 name = "quixand"
-version = "0.1.3"
+version = "0.1.5"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
     { name = "aiohttp" },
     { name = "anyio" },
     { name = "build" },
+    { name = "docker" },
+    { name = "fastapi" },
     { name = "ipykernel" },
     { name = "orjson" },
+    { name = "podman" },
     { name = "ptyprocess" },
     { name = "pydantic" },
     { name = "rich" },
@@ -1503,9 +1534,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-docker = [
-    { name = "docker" },
-]
 remote = [
     { name = "aiohttp" },
 ]
@@ -1517,9 +1545,11 @@ requires-dist = [
     { name = "aiohttp", marker = "extra == 'remote'", specifier = ">=3.9" },
     { name = "anyio", specifier = ">=4.0" },
     { name = "build", specifier = ">=1.3.0" },
-    { name = "docker", marker = "extra == 'docker'", specifier = ">=7.0" },
+    { name = "docker", specifier = ">=7.0" },
+    { name = "fastapi", specifier = ">=0.116.1" },
     { name = "ipykernel", specifier = ">=6.30.1" },
     { name = "orjson", specifier = ">=3.10" },
+    { name = "podman", specifier = ">=4.0" },
     { name = "ptyprocess", specifier = ">=0.7" },
     { name = "pydantic", specifier = ">=2.6" },
     { name = "rich", specifier = ">=13.7" },
@@ -1527,7 +1557,7 @@ requires-dist = [
     { name = "typer", specifier = ">=0.12" },
     { name = "websockets", specifier = ">=12.0" },
 ]
-provides-extras = ["docker", "chutes", "remote"]
+provides-extras = ["chutes", "remote"]
 
 [[package]]
 name = "readme-renderer"
@@ -1644,6 +1674,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/28/e3/55dcc2cfbc3ca9c29519eb6884dd1415ecb53b0e934862d3559ddcb7e20b/stack_data-0.6.3.tar.gz", hash = "sha256:836a778de4fec4dcd1dcd89ed8abff8a221f58308462e1c4aa2a3cf30148f0b9", size = 44707, upload-time = "2023-09-30T13:58:05.479Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f1/7b/ce1eafaf1a76852e2ec9b22edecf1daa58175c090266e9f6c64afcd81d91/stack_data-0.6.3-py3-none-any.whl", hash = "sha256:d5558e0c25a4cb0853cddad3d77da9891a08cb85dd9f9f91b9f8cd66e511e695", size = 24521, upload-time = "2023-09-30T13:58:03.53Z" },
+]
+
+[[package]]
+name = "starlette"
+version = "0.47.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/15/b9/cc3017f9a9c9b6e27c5106cc10cc7904653c3eec0729793aec10479dd669/starlette-0.47.3.tar.gz", hash = "sha256:6bc94f839cc176c4858894f1f8908f0ab79dfec1a6b8402f6da9be26ebea52e9", size = 2584144, upload-time = "2025-08-24T13:36:42.122Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ce/fd/901cfa59aaa5b30a99e16876f11abe38b59a1a2c51ffb3d7142bb6089069/starlette-0.47.3-py3-none-any.whl", hash = "sha256:89c0778ca62a76b826101e7c709e70680a1699ca7da6b44d38eb0a7e61fe4b51", size = 72991, upload-time = "2025-08-24T13:36:40.887Z" },
 ]
 
 [[package]]

@@ -55,7 +55,7 @@ def main():
         if not server_ready:
             print("Warning: Server may not be ready after timeout, proceeding anyway...")
         
-        problem = "Write a Python function that returns 'Hello, World!'"
+        problem = "Write quicksort"
 
         print(f"\nWriting problem: {problem}")
         sandbox.files.write("problem_statement.txt", problem)
