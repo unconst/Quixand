@@ -4,7 +4,7 @@ import quixand as qs
 def main():
 	img = qs.Templates.build("./", name="py311-tools")
 	print("built:", img)
-	
+
 	sbx = qs.Sandbox(
 		template=img,
 		volumes=[

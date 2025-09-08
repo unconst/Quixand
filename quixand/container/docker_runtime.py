@@ -132,12 +132,14 @@ class DockerRuntime(ContainerRuntime):
             'host_config': host_config,
             'labels': config.labels,
             'detach': True,
+            'tty': True,
+            'stdin_open': True,
         }
 
-        if config.entrypoint:
+        if config.entrypoint is not None:
             container_kwargs['entrypoint'] = config.entrypoint
-        if config.command:
-            container_kwargs['command'] = config.command
+        if config.command is not None:
+            container_kwargs['command'] = config.command            
         if exposed_ports:
             container_kwargs['ports'] = exposed_ports
 

@@ -36,6 +36,3 @@ ENV DOCKER_HOST=unix:///var/run/docker.sock
 
 # Create mount point for Docker socket
 VOLUME ["/var/run/docker.sock"]
-
-# Default command - run Python with Quixand available
-CMD ["python"]

@@ -95,6 +95,8 @@ class PodmanRuntime(ContainerRuntime):
             'environment': config.env,
             'labels': config.labels,
             'detach': True,
+            'tty': True,
+            'stdin_open': True,
         }
         
         # Only add mounts if they exist
@@ -113,10 +115,10 @@ class PodmanRuntime(ContainerRuntime):
             if config.resources.network:
                 container_kwargs['network_mode'] = config.resources.network
 
-        # Add entrypoint and command
-        if config.entrypoint:
+        # Handle entrypoint and command
+        if config.entrypoint is not None:
             container_kwargs['entrypoint'] = config.entrypoint
-        if config.command:
+        if config.command is not None:
             container_kwargs['command'] = config.command
 
         # Add port mappings

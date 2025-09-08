@@ -126,9 +126,8 @@ class LocalDockerAdapter:
             },
             volumes=volumes,
             resources=resources,
-            # Use sleep infinity to keep container running
-            entrypoint=["/bin/sh"],
-            command=["-c", "sleep infinity"],
+            entrypoint=cfg.entrypoint,
+            command=cfg.command,
             labels={
                 "quixand.id": sbx_id,
                 "quixand.created": datetime.utcnow().isoformat(),
