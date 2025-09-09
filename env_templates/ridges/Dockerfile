@@ -14,12 +14,12 @@ WORKDIR /app
 
 RUN git clone https://github.com/ridgesai/ridges.git && cd ridges && pip install -e . && pip install fastapi 
 ENV PYTHONPATH=/app/ridges
-COPY api_server.py .
+COPY env.py .
 
 ENV AI_PROXY_URL=http://localhost:8000
 ENV ENV=dev
 WORKDIR /sandbox
 
-CMD ["uvicorn", "api_server:app", "--host", "0.0.0.0", "--port", "8000", "--app-dir", "/app"]
+CMD ["uvicorn", "env:app", "--host", "0.0.0.0", "--port", "8000", "--app-dir", "/app"]
 
 

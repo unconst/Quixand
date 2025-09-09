@@ -12,54 +12,66 @@ class ProxyFacade:
 	def __init__(self, sbx: "Sandbox"):
 		# Deferred import to avoid circular
 		self._sb = sbx
-		self._status_marker = "QS_PROXY_STATUS__:"
 
-	def _curl(self, *, method: str, url: str, payload: dict | None, timeout: Optional[int]) -> tuple[int, str]:
-		# Build a shell command that posts JSON via curl and appends a unique status marker
-		json_str = json.dumps(payload or {})
-		json_quoted = shlex.quote(json_str)
-		marker = shlex.quote(self._status_marker + "%{http_code}")
-		# Use echo to pipe JSON to curl, write body to stdout and append status
-		cmd = (
-			"echo "
-			+ json_quoted
-			+ " | "
-			+ "curl -sS -X "
-			+ shlex.quote(method.upper())
-			+ " -H 'Content-Type: application/json' "
-			+ (f"--max-time {int(timeout)} " if timeout else "")
-			+ "-d @- "
-			+ shlex.quote(url)
-			+ " -w '\n" + self._status_marker + "%{http_code}'"
-		)
+	def _make_request(self, *, method: str, url: str, payload: dict | None, timeout: Optional[int]) -> tuple[int, str]:
+		"""Make HTTP request inside container using curl."""
+		
+		# For GET requests without payload, use simpler curl command
+		if method.upper() == "GET" and not payload:
+			status_marker = "QS_PROXY_STATUS__:"
+			marker = shlex.quote(status_marker + "%{http_code}")
+			cmd = (
+				"curl -sS -X GET "
+				+ (f"--max-time {int(timeout)} " if timeout else "")
+				+ shlex.quote(url)
+				+ " -w '\\n" + status_marker + "%{http_code}'"
+			)
+		else:
+			# For other methods or when payload is needed
+			json_str = json.dumps(payload or {})
+			json_quoted = shlex.quote(json_str)
+			status_marker = "QS_PROXY_STATUS__:"
+			marker = shlex.quote(status_marker + "%{http_code}")
+			
+			cmd = (
+				"echo "
+				+ json_quoted
+				+ " | "
+				+ "curl -sS -X "
+				+ shlex.quote(method.upper())
+				+ " -H 'Content-Type: application/json' "
+				+ (f"--max-time {int(timeout)} " if timeout else "")
+				+ "-d @- "
+				+ shlex.quote(url)
+				+ " -w '\\n" + status_marker + "%{http_code}'"
+			)
+		
 		res = self._sb.run(cmd, timeout=timeout)
 		text = res.text
-		idx = text.rfind(self._status_marker)
+		idx = text.rfind(status_marker)
 		if idx == -1:
 			raise QSProxyError("Proxy call failed: could not parse HTTP status from response")
 		body = text[:idx].rstrip("\n")
-		status_str = text[idx + len(self._status_marker):].strip()
+		status_str = text[idx + len(status_marker):].strip()
 		try:
 			status = int(status_str)
 		except ValueError:
 			raise QSProxyError(f"Proxy call failed: invalid HTTP status '{status_str}'")
 		return status, body
 
-	def _wait_ready(self, *, port: int, health_path: str, timeout: int) -> None:
-		# Poll health endpoint inside the container until it returns 200 or timeout
+	def health(self, *, port: int = 8000, timeout: int = 30) -> None:
+		"""Check service health by polling /health endpoint."""
 		deadline = time.time() + timeout
-		url = f"http://localhost:{port}{health_path}"
+		url = f"http://localhost:{port}/health"
+		
 		while time.time() < deadline:
 			try:
-				cmd = (
-					"curl -s -o /dev/null -w '%{http_code}' " + shlex.quote(url)
-				)
-				res = self._sb.run(cmd, timeout=5)
-				if res.text.strip() == "200":
+				status, body = self._make_request(method="GET", url=url, payload=None, timeout=5)
+				if status == 200:
 					return
 			except Exception:
 				pass
-			time.sleep(0.5)
+			time.sleep(1)
 		raise QSProxyError(f"Service not ready on {url} within {timeout}s")
 
 	def run(
@@ -80,16 +92,16 @@ class ProxyFacade:
 		Raises QSProxyError if the endpoint is not defined or returns non-2xx.
 		"""
 		if ensure_ready:
-			self._wait_ready(port=port, health_path="/health", timeout=min(timeout, 30))
+			self.health(port=port, timeout=min(timeout, 30))
 
 		data = payload if payload is not None else dict(kwargs)
 		url = f"http://localhost:{port}{path}"
 
-		status, body = self._curl(method=method, url=url, payload=data, timeout=timeout)
+		status, body = self._make_request(method=method, url=url, payload=data, timeout=timeout)
 		if status == 404 and fallback_paths:
 			for fp in fallback_paths:
 				alt_url = f"http://localhost:{port}{fp}"
-				status, body = self._curl(method=method, url=alt_url, payload=data, timeout=timeout)
+				status, body = self._make_request(method=method, url=alt_url, payload=data, timeout=timeout)
 				if status != 404:
 					break
 
@@ -101,5 +113,3 @@ class ProxyFacade:
 			return json.loads(body) if body else None
 		except Exception:
 			return body
-
-
