@@ -24,3 +24,8 @@ class QSTemplateError(Exception):
 	pass
 
 
+
+class QSProxyError(Exception):
+	pass
+
+

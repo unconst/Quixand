@@ -27,6 +27,7 @@ dependencies = [
   "ipykernel>=6.30.1",
   "docker>=7.0",
   "podman>=4.0",
+  "fastapi>=0.116.1",
 ]
 
 [project.optional-dependencies]
