@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Generic environment installer for AgentGym."""
 
 import subprocess
 import sys
@@ -15,11 +14,6 @@ def install_environment():
         return
     
     print(f"Installing AgentGym environment: {env_name}")
-    
-    # Install the base agentenv package
-    subprocess.run([
-        sys.executable, "-m", "pip", "install", "-e", "/app/AgentGym/agentenv"
-    ], check=False)
     
     # Special handling for alfworld environment
     if env_name == "alfworld":

@@ -1,11 +1,4 @@
 #!/usr/bin/env python3
-"""
-Example script demonstrating AgentGym integration with AlfWorld environment.
-This script shows how to:
-1. Build a Docker image with AlfWorld pre-installed
-2. Create a sandbox container
-3. Interact with the AlfWorld environment through the API
-"""
 
 import random
 import quixand as qs
@@ -54,7 +47,6 @@ def main():
             print(f"Step {step_count + 1}: Taking action - '{action}'")
             
             step_response = sandbox.proxy.run(
-                ensure_ready=False,
                 payload={
                     "id": env_id,
                     "action": action
