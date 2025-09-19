@@ -6,7 +6,7 @@ import time
 from typing import Any, Optional
 from urllib.parse import urlencode
 
-from ..errors import QSProxyError
+from quixand.errors import QSProxyError
 
 
 class ProxyFacade:
@@ -95,7 +95,7 @@ class ProxyFacade:
 		self._method_cache[url] = method
 		return method
 
-	def health(self, *, port: int = 8000, timeout: int = 30) -> None:
+	def _health(self, *, port: int = 8000, timeout: int = 30) -> None:
 		"""Check service health by polling /health endpoint."""
 		deadline = time.time() + timeout
 		url = f"http://localhost:{port}/health"
@@ -110,46 +110,6 @@ class ProxyFacade:
 			time.sleep(1)
 		raise QSProxyError(f"Service not ready on {url} within {timeout}s")
 
-	def run(
-		self,
-		*,
-		port: int = 8000,
-		path: str = "/run",
-		method: str = "POST",
-		payload: Optional[dict] = None,
-		timeout: int = 60,
-		ensure_ready: bool = True,
-		fallback_paths: tuple[str, ...] = ("/env/run",),
-		**kwargs: Any,
-	) -> Any:
-		"""Call an HTTP endpoint inside the container and return parsed JSON.
-
-		Defaults to POSTing to http://localhost:{port}/run with kwargs as JSON.
-		Raises QSProxyError if the endpoint is not defined or returns non-2xx.
-		"""
-		if ensure_ready:
-			self.health(port=port, timeout=min(timeout, 30))
-
-		data = payload if payload is not None else dict(kwargs)
-		url = f"http://localhost:{port}{path}"
-
-		status, body = self._make_request(method=method, url=url, payload=data, timeout=timeout)
-		if status == 404 and fallback_paths:
-			for fp in fallback_paths:
-				alt_url = f"http://localhost:{port}{fp}"
-				status, body = self._make_request(method=method, url=alt_url, payload=data, timeout=timeout)
-				if status != 404:
-					break
-
-		if status < 200 or status >= 300:
-			raise QSProxyError(f"Proxy call failed with HTTP {status}: {body[:200]}")
-
-		# Try JSON decode, else return raw text
-		try:
-			return json.loads(body) if body else None
-		except Exception:
-			return body
-
 	def __getattr__(self, name: str):
 		"""Dynamic method creation for API endpoints."""
 		def dynamic_api_call(**kwargs):
@@ -158,7 +118,7 @@ class ProxyFacade:
 			ensure_ready = kwargs.pop("_ensure_ready", True)
 			
 			if ensure_ready:
-				self.health(port=port, timeout=min(timeout, 30))
+				self._health(port=port, timeout=min(timeout, 30))
 			url = f"http://localhost:{port}/{name}"
 			method = self._detect_method(url, port, kwargs)
 			status, body = self._make_request(method=method, url=url, payload=kwargs, timeout=timeout)

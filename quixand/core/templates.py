@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from ..config import Config
+from quixand.config import Config
 
 
 INDEX = Config.templates_dir() / "index.json"
@@ -79,12 +79,14 @@ class Templates:
 	@staticmethod
 	def agentgym(env_name: str) -> str:
 		template_path = "env_templates/agentgym"
-		
+		base_image = "python:3.11-slim"
+		if env_name == "webshop":
+			base_image = "python:3.8-slim"
 		# Always pre-build with the specified environment
 		return Templates.build(
 			template_path,
 			name=f"agentgym-{env_name}",
-			build_args={"PREINSTALL_ENV": env_name}
+			build_args={"PREINSTALL_ENV": env_name, "BASE_IMAGE": base_image}
 		)
 
 

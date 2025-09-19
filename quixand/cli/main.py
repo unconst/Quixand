@@ -6,9 +6,9 @@ from typing import Optional
 import typer
 from rich import print
 
-from ..core.sandbox import Sandbox
-from ..core.lifecycle import connect as connect_fn
-from ..core.templates import Templates
+from quixand.core.sandbox import Sandbox
+from quixand.core.lifecycle import connect as connect_fn
+from quixand.core.templates import Templates
 
 
 app = typer.Typer(name="qs", help="Quixand CLI")
@@ -49,7 +49,7 @@ def sandbox_exec(id: str, cmd: list[str]):
 
 @sandbox_app.command("ls")
 def sandbox_ls():
-	from ..config import Config
+	from quixand.config import Config
 	import json
 	state = {}
 	try:

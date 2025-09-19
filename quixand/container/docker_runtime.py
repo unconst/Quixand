@@ -25,7 +25,7 @@ except ImportError:
     DockerClient = Any
     Container = Any
 
-from .base import (
+from quixand.container.base import (
     ContainerRuntime,
     ContainerConfig,
     ContainerInfo,

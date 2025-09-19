@@ -186,13 +186,8 @@ def main():
         problem = "Write a quicksort algorithm in Python without comments"
         print(f"Problem: {problem}")
         response = sandbox.proxy.run(
-            port=8000,
-            path="/run",
-            method="POST",
-            payload={
-                "problem_statement": problem,
-            },
-            timeout=300
+            problem_statement=problem,
+            _timeout=300
         )
         print(f"Agent response: {response}")
     finally:

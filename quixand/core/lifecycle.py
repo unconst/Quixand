@@ -23,7 +23,7 @@ def connect(sandbox_id: str, adapter: str | None = None) -> Sandbox:
 		obj._handle = h
 		obj.files = type("FilesFacade", (), {})  # placeholder; Sandbox __init__ sets this normally
 		# reconstruct FilesFacade bound to obj
-		from .sandbox import FilesFacade as _FF
+		from quixand.core.sandbox import FilesFacade as _FF
 
 		obj.files = _FF(obj)
 		obj.id = h.id

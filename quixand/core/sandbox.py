@@ -3,11 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable, Optional
 
-from ..adapters.base import Adapter, Resources as AdapterResources, SandboxConfig
-from ..adapters.local_docker import LocalDockerAdapter
-from ..config import Config, Resources
-from ..types import CommandResult, Execution, FileInfo, SandboxStatus
-from .proxy import ProxyFacade
+from quixand.adapters.base import Adapter, Resources as AdapterResources, SandboxConfig
+from quixand.adapters.local_docker import LocalDockerAdapter
+from quixand.config import Config, Resources
+from quixand.types import CommandResult, Execution, FileInfo, SandboxStatus
+from quixand.core.proxy import ProxyFacade
 
 
 def _resolve_adapter(adapter: str | Adapter | None, cfg: Config) -> Adapter:

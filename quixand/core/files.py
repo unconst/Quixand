@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .sandbox import Sandbox
+from quixand.core.sandbox import Sandbox
 
 
 class Files:

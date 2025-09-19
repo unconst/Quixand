@@ -4,9 +4,9 @@ import anyio
 from dataclasses import dataclass
 from typing import Optional
 
-from ..adapters.base import Adapter
-from ..core.sandbox import Sandbox
-from ..types import CommandResult, Execution, SandboxStatus
+from quixand.adapters.base import Adapter
+from quixand.core.sandbox import Sandbox
+from quixand.types import CommandResult, Execution, SandboxStatus
 
 
 class AsyncSandbox:

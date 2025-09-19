@@ -8,8 +8,8 @@ from queue import LifoQueue, Empty
 from threading import Lock
 from typing import Iterator, Optional
 
-from ..config import Config
-from .sandbox import Sandbox
+from quixand.config import Config
+from quixand.core.sandbox import Sandbox
 
 # Track active playgrounds for best-effort global cleanup
 _ACTIVE_PLAYGROUNDS: "weakref.WeakSet[Playground]"  # type: ignore[name-defined]

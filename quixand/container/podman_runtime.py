@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 
 try:
-    import podman
     from podman import PodmanClient
     from podman.errors import NotFound, APIError
     HAS_PODMAN = True
@@ -19,7 +18,7 @@ except ImportError:
     HAS_PODMAN = False
     PodmanClient = Any
 
-from .base import (
+from quixand.container.base import (
     ContainerRuntime,
     ContainerConfig,
     ContainerInfo,
