@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 import shutil
 from pathlib import Path
 
-from ..config import Config
-from ..container import DockerRuntime, PodmanRuntime, ContainerRuntime
+from quixand.config import Config
+from quixand.container import DockerRuntime, PodmanRuntime, ContainerRuntime
 
 
 def _load_state() -> dict:

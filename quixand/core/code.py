@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from .sandbox import Sandbox
-from ..types import Execution
+from quixand.core.sandbox import Sandbox
+from quixand.types import Execution
 
 
 def run_code(sbx: Sandbox, code: str) -> Execution:

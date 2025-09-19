@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable, Optional, Protocol
 
-from ..types import CommandResult, Execution, PTYHandle, SandboxHandle, SandboxStatus
+from quixand.types import CommandResult, Execution, PTYHandle, SandboxHandle, SandboxStatus
 
 
 class Adapter(Protocol):
